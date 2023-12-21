@@ -9,20 +9,20 @@ const menuData: Menu[] = [
   },
   {
     id: 2,
-    title: "About",
-    path: "/about",
+    title: "Browse Spaces",
+    path: "/",
     newTab: false,
   },
   {
     id: 33,
-    title: "Blog",
-    path: "/blog",
+    title: "List your spaces",
+    path: "/add-listing",
     newTab: false,
   },
   {
     id: 3,
-    title: "Support",
-    path: "/contact",
+    title: "How it works",
+    path: "/how-it-works",
     newTab: false,
   },
   {

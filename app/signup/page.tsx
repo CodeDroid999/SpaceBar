@@ -1,6 +1,161 @@
-import Link from "next/link";
 
-const SignupPage = () => {
+import {
+  GoogleAuthProvider,
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  signInWithPopup,
+  sendEmailVerification,
+} from 'firebase/auth'
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import React, { useEffect, useState } from 'react'
+import { auth, db } from '../../firebase'
+import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
+import toast from 'react-hot-toast'
+import Head from 'next/head'
+import axios from 'axios';
+
+
+export default function SignupPage() {
+  const [passwordVisible, setPasswordVisible] = useState(false)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [emailError, setEmailError] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirect = searchParams.get('redirect')
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        router.push(`/setup-profile`)
+      }
+    })
+    return () => unsubscribe()
+  }, [router, redirect])
+
+  const handleGoogleSignIn = async () => {
+    const provider = new GoogleAuthProvider()
+    try {
+      const result = await signInWithPopup(auth, provider)
+      const user = result.user
+      const userRef = await addDoc(collection(db, 'users'), {
+        firstName: '',
+        lastName: '',
+        dateOfBirth: '',
+        phoneNumber: '',
+        profilePicture: '',
+        billingAddress: '',
+        mainRole: '',
+        role: '',
+        email: user.email,
+        userId: user.uid,
+        bankAccount: {
+          accountHolderName: '',
+          accountNumber: '',
+          BSB: '',
+        },
+        aboutDescription: '',
+        postalCode: '',
+        tag: '',
+        city: '',
+        skills: [],
+        education: [],
+        createdAt: serverTimestamp(),
+      })
+    } catch (error) {
+      const errorCode = error.code
+      const errorMessage = error.message
+    }
+  }
+
+  const handleSignUp = async (event: any) => {
+    event.preventDefault()
+    let hasError = false
+    if (!email) {
+      setEmailError('Email is required')
+      hasError = true
+    } else if (!email.includes('@')) {
+      setEmailError('Email entered is not valid')
+      hasError = true
+    } else {
+      setEmailError('')
+    }
+
+    if (!password) {
+      setPasswordError('Password is required')
+      hasError = true
+    } else if (password.length < 6) {
+      setPasswordError('Password must be at least 6 characters')
+      hasError = true
+    } else {
+      setPasswordError('')
+    }
+
+    if (hasError) {
+      return
+    }
+    try {
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      )
+      const user = userCredential.user
+      // Send verification email
+      await sendEmailVerification(user)
+      // Display success message to user
+      toast.success(
+        'Verification email has been sent. Please check your inbox.'
+      )
+      //send welcome message to user
+      // Create user data for the HTTP request
+      const userData = {
+        firstName: '', // Fill in the user's first name
+        lastName: '',  // Fill in the user's last name
+        email: user.email, // Use the user's email
+      };
+
+      // Make the HTTP request to the api/welcomeuser route
+      await axios.post('/api/welcomeuser', userData);
+      const userRef = await addDoc(collection(db, 'users'), {
+        firstName: '',
+        lastName: '',
+        dateOfBirth: '',
+        phoneNumber: '',
+        profilePicture: '',
+        billingAddress: '',
+        mainRole: '',
+        role: '',
+        email: user.email,
+        userId: user.uid,
+        bankAccount: {
+          accountHolderName: '',
+          accountNumber: '',
+          BSB: '',
+        },
+        aboutDescription: '',
+        postalCode: '',
+        tag: '',
+        city: '',
+        skills: [],
+        education: [],
+        createdAt: serverTimestamp(),
+      })
+
+
+    } catch (error) {
+      const errorCode = error.code
+      const errorMessage = error.message
+      if (errorCode === 'auth/email-already-in-use') {
+        toast.error('User already exists. Please log in.')
+      } else {
+        toast.error('Error occurred:', errorMessage)
+      }
+    }
+  }
   return (
     <>
       <section className="relative z-10 overflow-hidden pt-36 pb-16 md:pb-20 lg:pt-[180px] lg:pb-28">
@@ -14,7 +169,8 @@ const SignupPage = () => {
                 <p className="mb-11 text-center text-base font-medium text-body-color">
                   It’s totally free and super easy
                 </p>
-                <button className="mb-6 flex w-full items-center justify-center rounded-md bg-white p-3 text-base font-medium text-body-color shadow-one hover:text-primary dark:bg-[#242B51] dark:text-body-color dark:shadow-signUp dark:hover:text-white">
+                <button className="mb-6 flex w-full items-center justify-center rounded-md bg-white p-3 text-base font-medium text-body-color shadow-one hover:text-primary dark:bg-[#242B51] dark:text-body-color dark:shadow-signUp dark:hover:text-white"
+                 onClick={handleGoogleSignIn}>
                   <span className="mr-3">
                     <svg
                       width="20"
@@ -222,7 +378,7 @@ const SignupPage = () => {
         </div>
       </section>
     </>
-  );
-};
+  )
+}
 
-export default SignupPage;
+
